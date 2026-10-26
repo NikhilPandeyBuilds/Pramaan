@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { useParams } from 'react-router-dom';
+import { api, getStoredToken } from '../lib/api';
 import { Application, Document, Finding, VerificationAttempt, ReviewAction, AuditEvent } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -10,33 +10,38 @@ import {
   AlertTriangle,
   Clock,
   Play,
-  FileCheck,
-  History,
-  Eye,
-  RefreshCw,
   Download,
   AlertCircle,
   ShieldAlert,
-  Send,
-  Building2,
-  ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Trash2,
+  Sparkles,
+  FileSearch,
+  Eye,
+  RefreshCw,
+  FileUp
 } from 'lucide-react';
 
 export const ApplicationDetail: React.FC = () => {
   const { applicationId } = useParams<{ applicationId: string }>();
   const { user, isOfficer, isAdmin } = useAuth();
+  const token = getStoredToken() || '';
 
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'intelligence' | 'findings' | 'verification' | 'review' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'intelligence' | 'findings' | 'verification' | 'review' | 'reports'>('documents');
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+
+  // Inspector mode: 'pdf' or 'ocr'
+  const [inspectorMode, setInspectorMode] = useState<'pdf' | 'ocr'>('pdf');
 
   // Upload state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadType, setUploadType] = useState<string>('APPROVAL_LETTER');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Validation state
   const [validating, setValidating] = useState(false);
@@ -65,8 +70,10 @@ export const ApplicationDetail: React.FC = () => {
     try {
       const data = await api.getApplication(applicationId);
       setApplication(data);
-      if (data.documents && data.documents.length > 0 && !selectedDocId) {
-        setSelectedDocId(data.documents[0].id);
+      if (data.documents && data.documents.length > 0) {
+        if (!selectedDocId || !data.documents.some((d: any) => d.id === selectedDocId)) {
+          setSelectedDocId(data.documents[0].id);
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -92,16 +99,50 @@ export const ApplicationDetail: React.FC = () => {
     e.preventDefault();
     if (!uploadFile || !applicationId) return;
     setUploading(true);
+    setUploadProgress(25);
     setStatusMessage(null);
     try {
-      await api.uploadDocument(applicationId, uploadType, uploadFile);
+      setUploadProgress(65);
+      const newDoc = await api.uploadDocument(applicationId, uploadType, uploadFile);
+      setUploadProgress(100);
       setUploadFile(null);
-      setStatusMessage('Document uploaded and processed successfully.');
+      setStatusMessage(`Document '${newDoc.original_filename}' uploaded & processed successfully! OCR parsed ${newDoc.page_count} page(s).`);
       await fetchApplication();
+      setSelectedDocId(newDoc.id);
+      setActiveTab('intelligence');
     } catch (err: any) {
       setStatusMessage(`Upload failed: ${err.message}`);
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleAttachSample = async (sampleType: string) => {
+    if (!applicationId) return;
+    setUploading(true);
+    setStatusMessage(null);
+    try {
+      const newDoc = await api.uploadSampleDocument(applicationId, sampleType);
+      setStatusMessage(`Sample document '${newDoc.original_filename}' generated and attached! Extracted ${newDoc.extracted_fields?.length || 0} fields.`);
+      await fetchApplication();
+      setSelectedDocId(newDoc.id);
+      setActiveTab('intelligence');
+    } catch (err: any) {
+      setStatusMessage(`Sample generation failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string, filename: string) => {
+    if (!confirm(`Are you sure you want to remove document '${filename}'?`)) return;
+    try {
+      await api.deleteDocument(docId);
+      setStatusMessage(`Document '${filename}' was removed.`);
+      await fetchApplication();
+    } catch (err: any) {
+      alert(`Delete failed: ${err.message}`);
     }
   };
 
@@ -111,8 +152,9 @@ export const ApplicationDetail: React.FC = () => {
     setStatusMessage(null);
     try {
       const res = await api.validateApplication(applicationId);
-      setStatusMessage(`Validation completed! Evaluated against active rules. Status: ${res.status}.`);
+      setStatusMessage(`Validation completed! Evaluated against active rules. Status: ${res.status.replace(/_/g, ' ').toUpperCase()}. Generated ${res.findings_count} findings.`);
       await fetchApplication();
+      setActiveTab('findings');
     } catch (err: any) {
       setStatusMessage(`Validation error: ${err.message}`);
     } finally {
@@ -131,7 +173,7 @@ export const ApplicationDetail: React.FC = () => {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewReason.trim()) {
-      alert('Mandatory reason is required.');
+      alert('Mandatory justification reason is required.');
       return;
     }
     setSubmittingReview(true);
@@ -276,21 +318,26 @@ export const ApplicationDetail: React.FC = () => {
       </div>
 
       {statusMessage && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-lg text-xs flex justify-between items-center">
-          <span>{statusMessage}</span>
-          <button onClick={() => setStatusMessage(null)} className="text-blue-600 hover:underline">Dismiss</button>
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-lg text-xs flex justify-between items-center shadow-xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>{statusMessage}</span>
+          </div>
+          <button onClick={() => setStatusMessage(null)} className="text-blue-600 hover:underline font-semibold ml-4">
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Tabs Bar */}
+      {/* Tabs Navigation */}
       <div className="border-b border-slate-200">
         <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto text-xs font-semibold">
           {[
-            { id: 'overview', label: '1. Application Form' },
-            { id: 'documents', label: `2. Documents (${documents.length})` },
-            { id: 'intelligence', label: '3. Document Intelligence Lab' },
-            { id: 'findings', label: `4. Compliance Findings (${findings.length})` },
-            { id: 'verification', label: `5. Source Verification (${verifications.length})` },
+            { id: 'documents', label: `1. Supporting Documents (${documents.length})` },
+            { id: 'intelligence', label: '2. Document Intelligence Lab' },
+            { id: 'findings', label: `3. Compliance Findings (${findings.length})` },
+            { id: 'verification', label: `4. Source Verification (${verifications.length})` },
+            { id: 'overview', label: '5. Application Form Data' },
             { id: 'review', label: `6. Officer Review (${reviews.length})` },
             { id: 'reports', label: '7. Audit Trail' },
           ].map((tab) => (
@@ -312,174 +359,322 @@ export const ApplicationDetail: React.FC = () => {
         </nav>
       </div>
 
-      {/* Tab 1: Overview & Application Data */}
-      {activeTab === 'overview' && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
-          <h2 className="text-base font-bold text-slate-900 border-b pb-2">Institutional Submission Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-              <span className="text-slate-500 uppercase tracking-wider font-semibold">Institution Name</span>
-              <p className="text-sm font-bold text-slate-800">{application.institution_name}</p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-              <span className="text-slate-500 uppercase tracking-wider font-semibold">AICTE Permanent Identifier</span>
-              <p className="text-sm font-mono font-bold text-slate-800">{application.institution_code}</p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-              <span className="text-slate-500 uppercase tracking-wider font-semibold">Total Approved Intake</span>
-              <p className="text-sm font-bold text-blue-600">{appData.total_approved_intake || 'N/A'} Seats</p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-              <span className="text-slate-500 uppercase tracking-wider font-semibold">Principal / Director</span>
-              <p className="text-sm font-bold text-slate-800">{appData.principal_name || 'N/A'}</p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-              <span className="text-slate-500 uppercase tracking-wider font-semibold">Contact Email</span>
-              <p className="text-sm font-bold text-slate-800">{appData.contact_email || 'N/A'}</p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-              <span className="text-slate-500 uppercase tracking-wider font-semibold">Campus Land Area</span>
-              <p className="text-sm font-bold text-slate-800">{appData.land_area_sqm ? `${appData.land_area_sqm} SQM` : 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Supporting Documents & Live Upload */}
+      {/* Tab 1: Supporting Documents & Live Upload */}
       {activeTab === 'documents' && (
         <div className="space-y-6">
           {/* Upload Card */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
-              <Upload className="w-4 h-4 text-blue-600" />
-              <span>Upload Supporting Document for Automated Extraction</span>
-            </h2>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                <Upload className="w-4 h-4 text-blue-600" />
+                <span>Upload Supporting Document for Automated Intake & Extraction</span>
+              </h2>
+              <span className="text-xs text-slate-500">Supports PDF, PNG, JPG (Max 25MB)</span>
+            </div>
 
-            <form onSubmit={handleUpload} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Document Type</label>
-                <select
-                  value={uploadType}
-                  onChange={(e) => setUploadType(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
+            {/* Manual Upload Form */}
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Select Document Type *
+                  </label>
+                  <select
+                    value={uploadType}
+                    onChange={(e) => setUploadType(e.target.value)}
+                    className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 font-medium"
+                  >
+                    <option value="APPROVAL_LETTER">Prior AICTE Approval Letter (EoA)</option>
+                    <option value="LAND_NOC">Land & Building Safety Clearance NOC</option>
+                    <option value="NBA_ACCREDITATION">NBA Accreditation Certificate</option>
+                    <option value="BUILDING_PLAN">Approved Building Master Plan</option>
+                    <option value="FACULTY_LIST">Sanctioned Faculty List</option>
+                    <option value="AFFIDAVIT">Legal Undertaking / Affidavit</option>
+                    <option value="OTHER">Other Institutional Record</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Choose PDF or Scanned Document File *
+                  </label>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        setUploadFile(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    className={`border-2 border-dashed rounded-lg p-3 text-center transition flex items-center justify-between px-4 ${
+                      isDragging ? 'border-blue-500 bg-blue-50/50' : 'border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 text-left">
+                      <FileUp className="w-5 h-5 text-blue-600 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">
+                          {uploadFile ? uploadFile.name : 'Click to select or drag & drop file here'}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {uploadFile ? `${(uploadFile.size / 1024).toFixed(1)} KB` : 'PDF, PNG, JPG up to 25MB'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="cursor-pointer bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-md text-xs font-semibold transition shrink-0">
+                      <span>Browse Files</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        className="hidden"
+                        onChange={(e) => setUploadFile(e.target.files ? e.target.files[0] : null)}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {uploading && (
+                <div className="space-y-1">
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
+                  <p className="text-[11px] text-blue-600 font-medium">Extracting text, computing SHA-256 digest, and parsing metadata...</p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={uploading || !uploadFile}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 flex items-center space-x-2"
                 >
-                  <option value="APPROVAL_LETTER">Prior AICTE Approval Letter (EoA)</option>
-                  <option value="LAND_NOC">Land & Building Safety NOC</option>
-                  <option value="NBA_ACCREDITATION">NBA Accreditation Certificate</option>
-                  <option value="BUILDING_PLAN">Approved Building Plan</option>
-                  <option value="FACULTY_LIST">Sanctioned Faculty List</option>
-                  <option value="AFFIDAVIT">Legal Undertaking / Affidavit</option>
-                  <option value="OTHER">Other Institutional Record</option>
-                </select>
+                  <Upload className="w-4 h-4" />
+                  <span>{uploading ? 'Processing Extraction...' : 'Upload & Run Automated Extraction'}</span>
+                </button>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Select File (PDF / Scanned Image)</label>
-                <input
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg"
-                  required
-                  onChange={(e) => setUploadFile(e.target.files ? e.target.files[0] : null)}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={uploading || !uploadFile}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50"
-              >
-                {uploading ? 'Processing Extraction...' : 'Upload & Run Extraction'}
-              </button>
             </form>
+
+            {/* Quick 1-Click Synthetic Sample Generator Buttons */}
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Instant Hackathon Evaluation: Attach Pre-Configured Test Compliance Document</span>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                Don't have a sample PDF ready? Click any scenario below to immediately generate, upload, and extract a live regulatory document:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => handleAttachSample('valid_eoa')}
+                  className="p-2.5 text-left rounded-lg border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/80 transition text-xs space-y-1 group"
+                >
+                  <span className="font-bold text-emerald-900 flex items-center justify-between">
+                    <span>Valid AICTE EoA Letter</span>
+                    <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-mono">PASS</span>
+                  </span>
+                  <p className="text-[11px] text-emerald-700">Matches AICTE ID ({application.institution_code}) & 420 intake.</p>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => handleAttachSample('expired_nba')}
+                  className="p-2.5 text-left rounded-lg border border-amber-200 bg-amber-50/60 hover:bg-amber-100/80 transition text-xs space-y-1 group"
+                >
+                  <span className="font-bold text-amber-900 flex items-center justify-between">
+                    <span>Expired NBA Certificate</span>
+                    <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-mono">FLAG</span>
+                  </span>
+                  <p className="text-[11px] text-amber-700">Contains expired validity date (2023-06-30).</p>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => handleAttachSample('altered_noc')}
+                  className="p-2.5 text-left rounded-lg border border-rose-200 bg-rose-50/60 hover:bg-rose-100/80 transition text-xs space-y-1 group"
+                >
+                  <span className="font-bold text-rose-900 flex items-center justify-between">
+                    <span>Altered Municipal NOC</span>
+                    <span className="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-mono">ALERT</span>
+                  </span>
+                  <p className="text-[11px] text-rose-700">Triggers visual anomaly signal on seal area.</p>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => handleAttachSample('mismatched_id')}
+                  className="p-2.5 text-left rounded-lg border border-purple-200 bg-purple-50/60 hover:bg-purple-100/80 transition text-xs space-y-1 group"
+                >
+                  <span className="font-bold text-purple-900 flex items-center justify-between">
+                    <span>Branch ID Mismatch</span>
+                    <span className="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded font-mono">MISMATCH</span>
+                  </span>
+                  <p className="text-[11px] text-purple-700">Contains 1-999988887 instead of institution ID.</p>
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Uploaded Documents List */}
+          {/* Uploaded Documents Inventory */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-              <thead className="bg-slate-50 font-semibold text-slate-500 uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3">Document Type</th>
-                  <th className="px-6 py-3">Original Filename</th>
-                  <th className="px-6 py-3">SHA-256 Digest</th>
-                  <th className="px-6 py-3">Pages</th>
-                  <th className="px-6 py-3">Processing Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {documents.map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-3 font-semibold text-slate-800">{d.document_type}</td>
-                    <td className="px-6 py-3 font-medium text-slate-600">{d.original_filename}</td>
-                    <td className="px-6 py-3 font-mono text-slate-400">{d.sha256.substring(0, 16)}...</td>
-                    <td className="px-6 py-3">{d.page_count}</td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
-                        {d.processing_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-right space-x-2">
-                      <a
-                        href={`/api/documents/${d.id}/download`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 hover:underline font-semibold"
-                      >
-                        Download
-                      </a>
-                    </td>
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Submitted Supporting Documents ({documents.length})
+              </span>
+              <span className="text-xs text-slate-500">Click any document to inspect extracted fields</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                <thead className="bg-slate-50 font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-3">Document Type</th>
+                    <th className="px-6 py-3">Filename</th>
+                    <th className="px-6 py-3">SHA-256 Digest</th>
+                    <th className="px-6 py-3">Pages</th>
+                    <th className="px-6 py-3">Extraction Status</th>
+                    <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {documents.length > 0 ? (
+                    documents.map((d) => (
+                      <tr key={d.id} className="hover:bg-slate-50 transition">
+                        <td className="px-6 py-3.5 font-bold text-slate-800">{d.document_type}</td>
+                        <td className="px-6 py-3.5 font-medium text-slate-600">{d.original_filename}</td>
+                        <td className="px-6 py-3.5 font-mono text-slate-400">{d.sha256.substring(0, 16)}...</td>
+                        <td className="px-6 py-3.5">{d.page_count}</td>
+                        <td className="px-6 py-3.5">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                            {d.processing_status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 text-right space-x-3">
+                          <button
+                            onClick={() => {
+                              setSelectedDocId(d.id);
+                              setActiveTab('intelligence');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center space-x-1"
+                          >
+                            <FileSearch className="w-3.5 h-3.5" />
+                            <span>Inspect Lab</span>
+                          </button>
+
+                          <a
+                            href={`/api/documents/${d.id}/download?token=${token}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-slate-600 hover:text-slate-900 font-semibold inline-flex items-center space-x-1"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download</span>
+                          </a>
+
+                          <button
+                            onClick={() => handleDeleteDocument(d.id, d.original_filename)}
+                            className="text-red-500 hover:text-red-700 font-semibold inline-flex items-center space-x-1"
+                            title="Remove document"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
+                        No documents attached. Upload a file above or click a sample generator to begin.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Tab 3: Document Intelligence Lab (Split View) */}
+      {/* Tab 2: Document Intelligence Lab (Split View with PDF Viewer & OCR Text) */}
       {activeTab === 'intelligence' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel: Document Viewer & Extracted Text */}
+          {/* Left Panel: Document Viewer (PDF or Extracted Text) */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
               <div className="flex items-center space-x-2">
                 <FileText className="w-4 h-4 text-blue-600" />
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Document Inspector</span>
               </div>
-              <select
-                value={selectedDocId || ''}
-                onChange={(e) => setSelectedDocId(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 font-medium text-slate-700"
-              >
-                {documents.map((d) => (
-                  <option key={d.id} value={d.id}>{d.original_filename} ({d.document_type})</option>
-                ))}
-              </select>
+
+              <div className="flex items-center space-x-2">
+                <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-semibold">
+                  <button
+                    onClick={() => setInspectorMode('pdf')}
+                    className={`px-2.5 py-1 rounded-md transition ${inspectorMode === 'pdf' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    PDF Viewer
+                  </button>
+                  <button
+                    onClick={() => setInspectorMode('ocr')}
+                    className={`px-2.5 py-1 rounded-md transition ${inspectorMode === 'ocr' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    OCR Text
+                  </button>
+                </div>
+
+                <select
+                  value={selectedDocId || ''}
+                  onChange={(e) => setSelectedDocId(e.target.value)}
+                  className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 font-medium text-slate-700 max-w-[180px] truncate"
+                >
+                  {documents.map((d) => (
+                    <option key={d.id} value={d.id}>{d.original_filename}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {selectedDoc ? (
               <div className="space-y-4">
-                {/* Metadata & Anomaly Banner if present */}
+                {/* Anomaly Banner if present */}
                 {selectedDoc.anomaly_flags_json && Object.keys(selectedDoc.anomaly_flags_json).length > 0 && (
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs space-y-1">
                     <div className="flex items-center space-x-1.5 text-amber-800 font-bold">
                       <ShieldAlert className="w-4 h-4 text-amber-600" />
-                      <span>Document Anomaly / Integrity Signal</span>
+                      <span>Document Anomaly / Integrity Signal Flagged</span>
                     </div>
-                    <p className="text-amber-700">
+                    <p className="text-amber-700 leading-snug">
                       {selectedDoc.anomaly_flags_json.reason || 'Irregularity flagged during document intake.'}
                     </p>
                   </div>
                 )}
 
-                <div className="p-3 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                  {selectedDoc.extracted_text || 'No text extracted from this document.'}
-                </div>
+                {inspectorMode === 'pdf' ? (
+                  <div className="relative w-full h-[520px] rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
+                    <iframe
+                      src={`/api/documents/${selectedDoc.id}/download?inline=true&token=${token}`}
+                      className="w-full h-full"
+                      title={selectedDoc.original_filename}
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs h-[520px] overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+                    {selectedDoc.extracted_text || 'No text extracted from this document.'}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="py-16 text-center text-xs text-slate-400">
-                Select a document to inspect OCR text.
+              <div className="py-24 text-center text-xs text-slate-400">
+                Select a document to inspect OCR text or view PDF.
               </div>
             )}
           </div>
@@ -490,30 +685,37 @@ export const ApplicationDetail: React.FC = () => {
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                 Extracted Fields & Evidence Snippets ({selectedDoc?.extracted_fields?.length || 0})
               </span>
+              <button
+                onClick={() => selectedDoc && api.reprocessDocument(selectedDoc.id).then(() => fetchApplication())}
+                className="text-xs text-blue-600 hover:text-blue-800 inline-flex items-center space-x-1 font-semibold"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-Extract</span>
+              </button>
             </div>
 
-            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
               {selectedDoc?.extracted_fields && selectedDoc.extracted_fields.length > 0 ? (
                 selectedDoc.extracted_fields.map((f) => (
-                  <div key={f.id} className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 space-y-1.5 text-xs">
+                  <div key={f.id} className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-800 font-mono">{f.field_name}</span>
+                      <span className="font-bold text-slate-800 font-mono uppercase">{f.field_name.replace(/_/g, ' ')}</span>
                       <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-semibold">
                         {(f.confidence * 100).toFixed(0)}% Confidence • Page {f.page_number}
                       </span>
                     </div>
-                    <div className="p-2 bg-white rounded border border-slate-200 font-semibold text-slate-900 text-sm">
+                    <div className="p-2.5 bg-white rounded border border-slate-200 font-semibold text-slate-900 text-sm">
                       {f.field_value}
                     </div>
                     {f.evidence_snippet && (
-                      <div className="text-[11px] text-slate-500 italic bg-slate-100/80 p-2 rounded">
+                      <div className="text-[11px] text-slate-500 italic bg-slate-100/90 p-2 rounded">
                         "{f.evidence_snippet}"
                       </div>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="py-12 text-center text-xs text-slate-400">
+                <div className="py-24 text-center text-xs text-slate-400">
                   No structured fields extracted for this document.
                 </div>
               )}
@@ -522,7 +724,7 @@ export const ApplicationDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 4: Regulatory Compliance Findings */}
+      {/* Tab 3: Regulatory Compliance Findings */}
       {activeTab === 'findings' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -611,7 +813,7 @@ export const ApplicationDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 5: Source Verification Centre */}
+      {/* Tab 4: Source Verification Centre */}
       {activeTab === 'verification' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -647,7 +849,7 @@ export const ApplicationDetail: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">{v.response_summary}</p>
-                  <p className="text-[11px] text-slate-400 font-mono">Attempt Timestamp: {v.checked_at}</p>
+                  <p className="text-[11px] text-slate-400 font-mono">Attempted: {v.checked_at} • Connector: {v.source_type}</p>
                 </div>
               ))
             ) : (
@@ -659,10 +861,42 @@ export const ApplicationDetail: React.FC = () => {
         </div>
       )}
 
+      {/* Tab 5: Overview & Application Data */}
+      {activeTab === 'overview' && (
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
+          <h2 className="text-base font-bold text-slate-900 border-b pb-2">Institutional Submission Form Data</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Institution Name</span>
+              <p className="text-sm font-bold text-slate-800">{application.institution_name}</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">AICTE Permanent Identifier</span>
+              <p className="text-sm font-mono font-bold text-slate-800">{application.institution_code}</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Total Approved Intake</span>
+              <p className="text-sm font-bold text-blue-600">{appData.total_approved_intake || 'N/A'} Seats</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Principal / Director</span>
+              <p className="text-sm font-bold text-slate-800">{appData.principal_name || 'N/A'}</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Contact Email</span>
+              <p className="text-sm font-bold text-slate-800">{appData.contact_email || 'N/A'}</p>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Campus Land Area</span>
+              <p className="text-sm font-bold text-slate-800">{appData.land_area_sqm ? `${appData.land_area_sqm} SQM` : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tab 6: Officer Review Workspace & Rectification */}
       {activeTab === 'review' && (
         <div className="space-y-6">
-          {/* Officer Action Bar */}
           {(isOfficer || isAdmin) && (
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
               <div>

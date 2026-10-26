@@ -101,7 +101,12 @@ export const api = {
       body: formData,
     });
   },
+  uploadSampleDocument: (applicationId: string, sampleType: string) =>
+    request<any>(`/applications/${applicationId}/documents/sample?sample_type=${encodeURIComponent(sampleType)}`, {
+      method: 'POST',
+    }),
   getDocument: (id: string) => request<any>(`/documents/${id}`),
+  deleteDocument: (id: string) => request<any>(`/documents/${id}`, { method: 'DELETE' }),
   reprocessDocument: (id: string) => request<any>(`/documents/${id}/reprocess`, { method: 'POST' }),
 
   // Validation

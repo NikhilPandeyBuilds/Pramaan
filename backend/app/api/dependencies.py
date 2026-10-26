@@ -10,15 +10,17 @@ security_bearer = HTTPBearer(auto_error=False)
 
 def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+    token: Optional[str] = None,
     db: Session = Depends(get_db)
 ) -> User:
-    if not credentials:
+    raw_token = credentials.credentials if credentials else token
+    if not raw_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided."
         )
 
-    payload = decode_access_token(credentials.credentials)
+    payload = decode_access_token(raw_token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

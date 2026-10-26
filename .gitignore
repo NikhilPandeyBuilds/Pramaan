@@ -13,6 +13,10 @@ storage/uploads/*
 !storage/uploads/.gitkeep
 storage/reports/*
 !storage/reports/.gitkeep
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+backend/storage/reports/*
+!backend/storage/reports/.gitkeep
 
 # Node
 node_modules/
