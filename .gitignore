@@ -1,0 +1,26 @@
+# Environments
+.env
+.env.local
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Database & Storage
+*.db
+*.sqlite3
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/reports/*
+!storage/reports/.gitkeep
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
