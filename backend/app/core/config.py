@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
     APP_ENV: str = "development"
-    APP_NAME: str = "NiyamAI — AICTE Regulatory Intelligence Platform"
+    APP_NAME: str = "Pramaan - AICTE Approval & Compliance Platform"
     API_PREFIX: str = "/api"
     FRONTEND_ORIGIN: str = "http://localhost:5173"
 

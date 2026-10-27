@@ -81,8 +81,8 @@ class ReportService:
         story = []
 
         # Header
-        story.append(Paragraph("NIYAMAI — AICTE REGULATORY INTELLIGENCE PLATFORM", title_style))
-        story.append(Paragraph(f"Application Validation & Compliance Dossier | Report ID: <b>{report_id}</b>", subtitle_style))
+        story.append(Paragraph("PRAMAAN — AICTE APPROVAL & COMPLIANCE PLATFORM", title_style))
+        story.append(Paragraph(f"Official Application Verification Report | Report ID: <b>{report_id}</b>", subtitle_style))
         story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#1E3A8A"), spaceAfter=12))
 
         # Institution & Application Metadata Table

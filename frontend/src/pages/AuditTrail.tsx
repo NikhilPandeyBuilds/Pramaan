@@ -62,19 +62,19 @@ export const AuditTrail: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">System Audit & Validation Dossiers</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Official chronological log of all extraction, validation, verification, and human review actions.
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Activity Log & Reports</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Complete record of application submissions, automated checks, and review actions.
           </p>
         </div>
 
         <button
           onClick={handleDownloadReport}
           disabled={generatingReport || !selectedAppId}
-          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
+          className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
         >
           <Download className="w-4 h-4" />
-          <span>{generatingReport ? 'Generating Report...' : 'Download Official Dossier PDF'}</span>
+          <span>{generatingReport ? 'Generating...' : 'Download Report (PDF)'}</span>
         </button>
       </div>
 

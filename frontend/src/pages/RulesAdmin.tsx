@@ -100,9 +100,9 @@ export const RulesAdmin: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Regulatory Rules Administration</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Declarative regulatory rule definitions, source mappings to the AICTE Approval Process Handbook, and versioning.
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Approval Rules & Guidelines</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Official compliance criteria mapped directly to the AICTE Approval Process Handbook (2026-27).
           </p>
         </div>
 

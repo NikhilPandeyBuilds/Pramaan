@@ -7,6 +7,15 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class UserRegister(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    role: str = "INSTITUTION_USER"
+    institution_name: Optional[str] = None
+    institution_code: Optional[str] = None
+    state: Optional[str] = None
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

@@ -6,6 +6,15 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<User>;
+  register: (data: {
+    full_name: string;
+    email: string;
+    password: string;
+    role?: string;
+    institution_name?: string;
+    institution_code?: string;
+    state?: string;
+  }) => Promise<User>;
   logout: () => Promise<void>;
   isOfficer: boolean;
   isAdmin: boolean;
@@ -42,6 +51,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res.user;
   };
 
+  const register = async (data: {
+    full_name: string;
+    email: string;
+    password: string;
+    role?: string;
+    institution_name?: string;
+    institution_code?: string;
+    state?: string;
+  }): Promise<User> => {
+    const res = await api.register(data);
+    setStoredToken(res.access_token);
+    setUser(res.user);
+    return res.user;
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -59,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isInstitution = user?.role === 'INSTITUTION_USER';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isOfficer, isAdmin, isInstitution }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, isOfficer, isAdmin, isInstitution }}>
       {children}
     </AuthContext.Provider>
   );

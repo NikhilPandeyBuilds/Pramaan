@@ -2,7 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { Check, ArrowRight, ArrowLeft, Building, Layers, GraduationCap, CheckCircle, AlertCircle, FileUp, Sparkles, Paperclip } from 'lucide-react';
+import {
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Building,
+  Layers,
+  GraduationCap,
+  CheckCircle,
+  AlertCircle,
+  FileUp,
+  Sparkles,
+  Paperclip
+} from 'lucide-react';
 
 export const NewApplication: React.FC = () => {
   const { user } = useAuth();
@@ -34,20 +46,20 @@ export const NewApplication: React.FC = () => {
   const [creationStatus, setCreationStatus] = useState<string>('');
 
   const steps = [
-    { id: 1, title: 'Institution Info', icon: Building },
-    { id: 2, title: 'Category & Year', icon: Layers },
-    { id: 3, title: 'Intake & Programme', icon: GraduationCap },
-    { id: 4, title: 'Checklist & Review', icon: CheckCircle },
+    { id: 1, title: 'College Info', icon: Building },
+    { id: 2, title: 'Approval Category', icon: Layers },
+    { id: 3, title: 'Courses & Seats', icon: GraduationCap },
+    { id: 4, title: 'Documents & Submit', icon: CheckCircle },
   ];
 
   const handleNext = () => {
     setError(null);
     if (currentStep === 1 && (!formData.institution_code || !formData.institution_name)) {
-      setError('Please provide valid institution code and name.');
+      setError('Please provide your college name and code.');
       return;
     }
     if (currentStep === 3 && !formData.total_approved_intake) {
-      setError('Please provide approved intake.');
+      setError('Please provide approved seat intake.');
       return;
     }
     setCurrentStep((prev) => Math.min(prev + 1, 4));
@@ -61,7 +73,7 @@ export const NewApplication: React.FC = () => {
   const handleSubmit = async (submitDirectly: boolean = false) => {
     setSubmitting(true);
     setError(null);
-    setCreationStatus('Registering institutional proposal...');
+    setCreationStatus('Saving application details...');
     try {
       const app = await api.createApplication({
         category: formData.category,
@@ -80,22 +92,22 @@ export const NewApplication: React.FC = () => {
 
       // Handle attached document if configured
       if (docSource === 'upload' && selectedFile) {
-        setCreationStatus(`Uploading & extracting '${selectedFile.name}'...`);
+        setCreationStatus(`Uploading '${selectedFile.name}'...`);
         await api.uploadDocument(app.id, docCategory, selectedFile);
       } else if (docSource === 'sample') {
-        setCreationStatus(`Generating & extracting compliance sample '${sampleType}'...`);
+        setCreationStatus('Attaching demo test document...');
         await api.uploadSampleDocument(app.id, sampleType);
       }
 
       if (submitDirectly) {
-        setCreationStatus('Submitting proposal for regulatory review...');
+        setCreationStatus('Submitting for review...');
         await api.submitApplication(app.id);
       }
 
-      setCreationStatus('Complete! Opening application dossier...');
+      setCreationStatus('Opening application...');
       navigate(`/applications/${app.id}`);
     } catch (err: any) {
-      setError(err.message || 'Failed to create application.');
+      setError(err.message || 'Failed to save application. Please try again.');
     } finally {
       setSubmitting(false);
       setCreationStatus('');
@@ -103,17 +115,17 @@ export const NewApplication: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create Institutional Application</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Follow the regulatory wizard to register your institutional proposal for Academic Year 2026-27.
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Create New Application</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          Submit details and upload supporting documents for Academic Year 2026-27 approval.
         </p>
       </div>
 
       {/* Wizard Step Indicator */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+      <div className="executive-card p-4 sm:p-5">
         <div className="flex items-center justify-between">
           {steps.map((s, idx) => {
             const Icon = s.icon;
@@ -122,21 +134,21 @@ export const NewApplication: React.FC = () => {
 
             return (
               <React.Fragment key={s.id}>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2.5">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-xs transition ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs transition-all ${
                       isCompleted
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-emerald-700 text-white shadow-xs'
                         : isCurrent
-                        ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                        ? 'bg-blue-900 text-white ring-4 ring-blue-100 shadow-xs'
                         : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {isCompleted ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
                   <span
-                    className={`text-xs font-semibold hidden sm:inline ${
-                      isCurrent ? 'text-slate-900' : 'text-slate-400'
+                    className={`text-xs font-bold hidden sm:inline ${
+                      isCurrent ? 'text-slate-900' : isCompleted ? 'text-emerald-800' : 'text-slate-400'
                     }`}
                   >
                     {s.title}
@@ -145,7 +157,7 @@ export const NewApplication: React.FC = () => {
                 {idx < steps.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-3 ${
-                      currentStep > s.id ? 'bg-emerald-500' : 'bg-slate-200'
+                      currentStep > s.id ? 'bg-emerald-600' : 'bg-slate-200'
                     }`}
                   />
                 )}
@@ -156,25 +168,27 @@ export const NewApplication: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3.5 flex items-center space-x-3 text-red-700 text-sm">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-center space-x-3 text-rose-800 text-xs font-semibold">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Step Content */}
-      <div className="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-xs space-y-6">
+      <div className="executive-card p-6 sm:p-8 space-y-6">
         {currentStep === 1 && (
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-slate-900 border-b pb-2">Step 1: Institutional Details</h2>
+            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+              Step 1: College & Institution Information
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Permanent AICTE ID</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Permanent AICTE Code</label>
                 <input
                   type="text"
                   value={formData.institution_code}
                   onChange={(e) => setFormData({ ...formData, institution_code: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-mono"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. 1-109283741"
                 />
               </div>
@@ -184,7 +198,7 @@ export const NewApplication: React.FC = () => {
                 <select
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Maharashtra">Maharashtra</option>
                   <option value="Karnataka">Karnataka</option>
@@ -192,17 +206,19 @@ export const NewApplication: React.FC = () => {
                   <option value="Tamil Nadu">Tamil Nadu</option>
                   <option value="Delhi">Delhi</option>
                   <option value="Gujarat">Gujarat</option>
+                  <option value="Telangana">Telangana</option>
+                  <option value="Other">Other State</option>
                 </select>
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Institution Legal Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Official College / Institution Name</label>
                 <input
                   type="text"
                   value={formData.institution_name}
                   onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
-                  placeholder="Official name as recorded in State Gazette / AICTE Registry"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Official registered name of the institution"
                 />
               </div>
             </div>
@@ -211,14 +227,16 @@ export const NewApplication: React.FC = () => {
 
         {currentStep === 2 && (
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-slate-900 border-b pb-2">Step 2: Regulatory Category & Academic Year</h2>
+            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+              Step 2: Category & Academic Year
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Application Category</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Application Type</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="EOA">Extension of Approval (EoA)</option>
                   <option value="NEW_INSTITUTION">Setting up New Technical Institution</option>
@@ -233,7 +251,7 @@ export const NewApplication: React.FC = () => {
                   type="text"
                   disabled
                   value={formData.academic_year}
-                  className="w-full text-sm bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-mono text-slate-500"
+                  className="w-full text-xs bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-mono text-slate-500"
                 />
               </div>
             </div>
@@ -242,26 +260,28 @@ export const NewApplication: React.FC = () => {
 
         {currentStep === 3 && (
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-slate-900 border-b pb-2">Step 3: Programme, Intake & Campus Details</h2>
+            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+              Step 3: Course & Seat Details
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Primary Discipline / Programme</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Discipline / Branch</label>
                 <input
                   type="text"
                   value={formData.programme}
                   onChange={(e) => setFormData({ ...formData, programme: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. Engineering & Technology"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Total Sanctioned / Proposed Intake</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Total Approved Student Intake (Seats)</label>
                 <input
                   type="number"
                   value={formData.total_approved_intake}
                   onChange={(e) => setFormData({ ...formData, total_approved_intake: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-mono"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. 420"
                 />
               </div>
@@ -272,17 +292,17 @@ export const NewApplication: React.FC = () => {
                   type="text"
                   value={formData.principal_name}
                   onChange={(e) => setFormData({ ...formData, principal_name: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Official Contact Email</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Contact Email</label>
                 <input
                   type="email"
                   value={formData.contact_email}
                   onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                  className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -290,47 +310,37 @@ export const NewApplication: React.FC = () => {
         )}
 
         {currentStep === 4 && (
-          <div className="space-y-6">
-            <h2 className="text-base font-bold text-slate-900 border-b pb-2">Step 4: Supporting Checklist & Document Attachment</h2>
+          <div className="space-y-5">
+            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+              Step 4: Supporting Documents & Review
+            </h2>
 
-            {/* Checklist guidance */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900">
-                Applicable AICTE Mandatory Checklist (APH 2026-27):
-              </h3>
-              <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
-                <li><b>Previous Year EoA Order:</b> Mandatory for Extension of Approval validation (Rule: EOA-DOC-001)</li>
-                <li><b>Land & Fire Safety NOC:</b> Competent authority clearance (Rule: EOA-NOC-002)</li>
-                <li><b>NBA Accreditation Certificate:</b> If claiming NBA accreditation benefits (Rule: NBA-VALID-003)</li>
-              </ul>
-            </div>
-
-            {/* Application Summary */}
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 text-xs space-y-2">
+            {/* Application Summary Box */}
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-slate-500">Institution:</span>
                 <span className="font-semibold text-slate-900">{formData.institution_name} ({formData.institution_code})</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Category & Year:</span>
+                <span className="text-slate-500">Application Type:</span>
                 <span className="font-semibold text-slate-900">{formData.category} — {formData.academic_year}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Sanctioned Intake:</span>
+                <span className="text-slate-500">Sanctioned Seats:</span>
                 <span className="font-semibold text-slate-900">{formData.total_approved_intake} seats ({formData.programme})</span>
               </div>
             </div>
 
             {/* Document Intake Options */}
-            <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-4 shadow-2xs">
-              <div className="flex items-center justify-between border-b pb-3">
+            <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b pb-2.5">
                 <div className="flex items-center space-x-2">
                   <Paperclip className="w-4 h-4 text-blue-600" />
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Initial Document Attachment (Automated Intake Pipeline)
+                    Attach Initial Document
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400">PDF or Scanned Certificate</span>
+                <span className="text-[11px] text-slate-400">PDF, PNG, JPG</span>
               </div>
 
               {/* Source Tab Toggle */}
@@ -338,7 +348,7 @@ export const NewApplication: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDocSource('upload')}
-                  className={`flex-1 py-1.5 rounded-md transition flex items-center justify-center space-x-1.5 ${
+                  className={`flex-1 py-1.5 rounded-md transition flex items-center justify-center space-x-1.5 cursor-pointer ${
                     docSource === 'upload' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -348,21 +358,21 @@ export const NewApplication: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDocSource('sample')}
-                  className={`flex-1 py-1.5 rounded-md transition flex items-center justify-center space-x-1.5 ${
+                  className={`flex-1 py-1.5 rounded-md transition flex items-center justify-center space-x-1.5 cursor-pointer ${
                     docSource === 'sample' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>1-Click Test Sample</span>
+                  <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Test Sample Document</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setDocSource('skip')}
-                  className={`flex-1 py-1.5 rounded-md transition ${
+                  className={`flex-1 py-1.5 rounded-md transition cursor-pointer ${
                     docSource === 'skip' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <span>Upload Later in Dossier</span>
+                  <span>Upload Later</span>
                 </button>
               </div>
 
@@ -371,7 +381,7 @@ export const NewApplication: React.FC = () => {
                 <div className="space-y-3 pt-1">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Document Category</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Document Type</label>
                       <select
                         value={docCategory}
                         onChange={(e) => setDocCategory(e.target.value)}
@@ -381,16 +391,16 @@ export const NewApplication: React.FC = () => {
                         <option value="NBA_ACCREDITATION">NBA Accreditation Certificate</option>
                         <option value="LAND_NOC">Land Ownership / Municipal NOC</option>
                         <option value="FIRE_SAFETY_NOC">Fire Safety Clearance Certificate</option>
-                        <option value="AFFIDAVIT">Institutional Affidavit (Format 1)</option>
+                        <option value="AFFIDAVIT">Institutional Affidavit</option>
                       </select>
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Select File (PDF or Image)</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Choose File</label>
                       <div className="flex items-center space-x-2">
                         <label className="flex-1 cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-xs flex items-center justify-between transition">
                           <span className="truncate text-slate-700 font-medium">
-                            {selectedFile ? selectedFile.name : 'Choose PDF, PNG, JPG file...'}
+                            {selectedFile ? selectedFile.name : 'Choose PDF or Image file...'}
                           </span>
                           <span className="text-[11px] bg-white border px-2 py-0.5 rounded text-slate-500 shrink-0 ml-2">Browse</span>
                           <input
@@ -404,16 +414,16 @@ export const NewApplication: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSelectedFile(null)}
-                            className="text-xs text-rose-600 hover:underline px-2"
+                            className="text-xs text-rose-600 hover:underline px-2 cursor-pointer"
                           >
-                            Clear
+                            Remove
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    File will be automatically digested (SHA-256), OCR/PyMuPDF extracted, and structured into the dossier.
+                    Uploaded documents are automatically scanned and indexed for verification.
                   </p>
                 </div>
               )}
@@ -422,7 +432,7 @@ export const NewApplication: React.FC = () => {
               {docSource === 'sample' && (
                 <div className="space-y-2 pt-1">
                   <p className="text-xs text-slate-500">
-                    Select a realistic synthetic AICTE compliance document to automatically generate and attach:
+                    Pick a sample compliance document to attach for testing:
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label className={`border rounded-lg p-2.5 cursor-pointer flex items-start space-x-2.5 transition text-xs ${
@@ -437,8 +447,8 @@ export const NewApplication: React.FC = () => {
                         className="mt-0.5"
                       />
                       <div>
-                        <span className="font-bold text-slate-800">Valid AICTE EoA Letter</span>
-                        <p className="text-[11px] text-slate-500">Matches institutional ID & sanctioned intake (Passes EOA-DOC-001).</p>
+                        <span className="font-semibold text-slate-800">Valid Approval Letter</span>
+                        <p className="text-[11px] text-slate-500">Correct institution ID & intake numbers.</p>
                       </div>
                     </label>
 
@@ -454,42 +464,8 @@ export const NewApplication: React.FC = () => {
                         className="mt-0.5"
                       />
                       <div>
-                        <span className="font-bold text-slate-800">Expired NBA Certificate</span>
-                        <p className="text-[11px] text-slate-500">Contains expired validity date (Triggers NBA-VALID-003).</p>
-                      </div>
-                    </label>
-
-                    <label className={`border rounded-lg p-2.5 cursor-pointer flex items-start space-x-2.5 transition text-xs ${
-                      sampleType === 'altered_noc' ? 'border-rose-500 bg-rose-50/50' : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="sampleType"
-                        value="altered_noc"
-                        checked={sampleType === 'altered_noc'}
-                        onChange={(e) => setSampleType(e.target.value)}
-                        className="mt-0.5"
-                      />
-                      <div>
-                        <span className="font-bold text-slate-800">Altered Municipal NOC</span>
-                        <p className="text-[11px] text-slate-500">Simulates tampered seal & baseline discrepancy (Alert signal).</p>
-                      </div>
-                    </label>
-
-                    <label className={`border rounded-lg p-2.5 cursor-pointer flex items-start space-x-2.5 transition text-xs ${
-                      sampleType === 'mismatched_id' ? 'border-purple-500 bg-purple-50/50' : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="sampleType"
-                        value="mismatched_id"
-                        checked={sampleType === 'mismatched_id'}
-                        onChange={(e) => setSampleType(e.target.value)}
-                        className="mt-0.5"
-                      />
-                      <div>
-                        <span className="font-bold text-slate-800">Branch ID Mismatch</span>
-                        <p className="text-[11px] text-slate-500">Contains mismatched ID 1-999988887 (Triggers consistency flag).</p>
+                        <span className="font-semibold text-slate-800">Expired Accreditation</span>
+                        <p className="text-[11px] text-slate-500">Contains expired validity date for testing.</p>
                       </div>
                     </label>
                   </div>
@@ -498,13 +474,13 @@ export const NewApplication: React.FC = () => {
 
               {/* Skip Mode */}
               {docSource === 'skip' && (
-                <p className="text-xs text-slate-500 italic py-1">
-                  You can upload or generate all documents at any time from the application dossier after creation.
+                <p className="text-xs text-slate-500 py-1">
+                  You can upload documents at any time from the application page.
                 </p>
               )}
             </div>
 
-            {/* Active Creation Feedback */}
+            {/* Active Status */}
             {creationStatus && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center space-x-2 text-xs text-blue-700">
                 <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-blue-600 shrink-0"></div>
@@ -515,12 +491,12 @@ export const NewApplication: React.FC = () => {
         )}
 
         {/* Wizard Controls */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           {currentStep > 1 ? (
             <button
               type="button"
               onClick={handleBack}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
@@ -531,18 +507,18 @@ export const NewApplication: React.FC = () => {
             <button
               type="button"
               onClick={handleNext}
-              className="inline-flex items-center space-x-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
             >
-              <span>Next Step</span>
+              <span>Next</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2.5">
               <button
                 type="button"
                 disabled={submitting}
                 onClick={() => handleSubmit(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                className="px-3.5 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
               >
                 Save as Draft
               </button>
@@ -550,9 +526,9 @@ export const NewApplication: React.FC = () => {
                 type="button"
                 disabled={submitting}
                 onClick={() => handleSubmit(true)}
-                className="inline-flex items-center space-x-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
               >
-                <span>{submitting ? 'Creating...' : 'Create & Proceed to Dossier'}</span>
+                <span>{submitting ? 'Saving...' : 'Create & Submit'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

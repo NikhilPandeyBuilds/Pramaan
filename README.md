@@ -1,4 +1,4 @@
-# NiyamAI — AICTE Regulatory Intelligence & Compliance Platform
+# Pramaan — AICTE Approval & Compliance Platform
 **Smart India Hackathon (SIH) Problem Statement:** 26261  
 **Organization:** All India Council for Technical Education (AICTE), Regulation Bureau  
 **Theme:** Smart Automation | **Category:** Software  
@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-**NiyamAI** is an AICTE regulatory intelligence and compliance decision-support system. It automates institutional Extension of Approval (EoA) verification by combining:
+**Pramaan** is an AICTE regulatory intelligence and compliance decision-support system. It automates institutional Extension of Approval (EoA) verification by combining:
 - **Intelligent Document Extraction**: PDF text extraction, metadata parsing, and OCR anomaly detection using PyMuPDF and computer vision signals.
 - **Deterministic Regulatory Rule Engine**: Rule configurations mapped directly to the AICTE Approval Process Handbook (APH 2026-27), evaluating document presence, validity periods, identifier exact matches, and intake consistency without AI hallucination.
 - **External Source Verification Sandbox**: Simulates automated connectors to the National Board of Accreditation (NBA), State DTEs, and central registries, handling matches, mismatches, and offline status gracefully.

@@ -296,34 +296,34 @@ export const ApplicationDetail: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={handleRunValidation}
             disabled={validating}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            <span>{validating ? 'Evaluating Rules...' : 'Run Regulatory Validation'}</span>
+            <span>{validating ? 'Checking Rules...' : 'Run Verification Checks'}</span>
           </button>
 
           <button
             onClick={handleGenerateReport}
             disabled={generatingReport}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{generatingReport ? 'Generating...' : 'Download Dossier PDF'}</span>
+            <span>{generatingReport ? 'Creating PDF...' : 'Download Report (PDF)'}</span>
           </button>
         </div>
       </div>
 
       {statusMessage && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-lg text-xs flex justify-between items-center shadow-xs">
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-2.5 rounded-lg text-xs flex justify-between items-center shadow-xs">
           <div className="flex items-center space-x-2">
             <CheckCircle className="w-4 h-4 text-blue-600 shrink-0" />
             <span>{statusMessage}</span>
           </div>
-          <button onClick={() => setStatusMessage(null)} className="text-blue-600 hover:underline font-semibold ml-4">
+          <button onClick={() => setStatusMessage(null)} className="text-blue-600 hover:underline font-semibold ml-4 cursor-pointer">
             Dismiss
           </button>
         </div>
@@ -333,13 +333,13 @@ export const ApplicationDetail: React.FC = () => {
       <div className="border-b border-slate-200">
         <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto text-xs font-semibold">
           {[
-            { id: 'documents', label: `1. Supporting Documents (${documents.length})` },
-            { id: 'intelligence', label: '2. Document Intelligence Lab' },
-            { id: 'findings', label: `3. Compliance Findings (${findings.length})` },
-            { id: 'verification', label: `4. Source Verification (${verifications.length})` },
-            { id: 'overview', label: '5. Application Form Data' },
+            { id: 'documents', label: `1. Documents (${documents.length})` },
+            { id: 'intelligence', label: '2. Document Viewer' },
+            { id: 'findings', label: `3. Issues & Findings (${findings.length})` },
+            { id: 'verification', label: `4. External Verification (${verifications.length})` },
+            { id: 'overview', label: '5. Form Details' },
             { id: 'review', label: `6. Officer Review (${reviews.length})` },
-            { id: 'reports', label: '7. Audit Trail' },
+            { id: 'reports', label: '7. Activity History' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -347,7 +347,7 @@ export const ApplicationDetail: React.FC = () => {
                 setActiveTab(tab.id as any);
                 if (tab.id === 'reports') loadAuditTrail();
               }}
-              className={`py-3 px-3 border-b-2 whitespace-nowrap transition ${
+              className={`py-2.5 px-3 border-b-2 whitespace-nowrap transition cursor-pointer ${
                 activeTab === tab.id
                   ? 'border-blue-600 text-blue-600 font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
@@ -363,18 +363,18 @@ export const ApplicationDetail: React.FC = () => {
       {activeTab === 'documents' && (
         <div className="space-y-6">
           {/* Upload Card */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-5">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h2 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-2">
                 <Upload className="w-4 h-4 text-blue-600" />
-                <span>Upload Supporting Document for Automated Intake & Extraction</span>
+                <span>Upload Supporting Document</span>
               </h2>
-              <span className="text-xs text-slate-500">Supports PDF, PNG, JPG (Max 25MB)</span>
+              <span className="text-xs text-slate-400">PDF, PNG, JPG (Max 25MB)</span>
             </div>
 
             {/* Manual Upload Form */}
             <form onSubmit={handleUpload} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Select Document Type *
@@ -382,9 +382,9 @@ export const ApplicationDetail: React.FC = () => {
                   <select
                     value={uploadType}
                     onChange={(e) => setUploadType(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 font-medium"
+                    className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium"
                   >
-                    <option value="APPROVAL_LETTER">Prior AICTE Approval Letter (EoA)</option>
+                    <option value="APPROVAL_LETTER">Prior Approval Letter (EoA)</option>
                     <option value="LAND_NOC">Land & Building Safety Clearance NOC</option>
                     <option value="NBA_ACCREDITATION">NBA Accreditation Certificate</option>
                     <option value="BUILDING_PLAN">Approved Building Master Plan</option>
@@ -396,7 +396,7 @@ export const ApplicationDetail: React.FC = () => {
 
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Choose PDF or Scanned Document File *
+                    Choose Document File *
                   </label>
                   <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -408,18 +408,18 @@ export const ApplicationDetail: React.FC = () => {
                         setUploadFile(e.dataTransfer.files[0]);
                       }
                     }}
-                    className={`border-2 border-dashed rounded-lg p-3 text-center transition flex items-center justify-between px-4 ${
+                    className={`border-2 border-dashed rounded-lg p-2.5 text-center transition flex items-center justify-between px-3.5 ${
                       isDragging ? 'border-blue-500 bg-blue-50/50' : 'border-slate-300 bg-slate-50/50 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-3 text-left">
-                      <FileUp className="w-5 h-5 text-blue-600 shrink-0" />
+                    <div className="flex items-center space-x-2.5 text-left">
+                      <FileUp className="w-4 h-4 text-blue-600 shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-slate-800">
-                          {uploadFile ? uploadFile.name : 'Click to select or drag & drop file here'}
+                          {uploadFile ? uploadFile.name : 'Click to select or drag & drop file'}
                         </p>
                         <p className="text-[11px] text-slate-400">
-                          {uploadFile ? `${(uploadFile.size / 1024).toFixed(1)} KB` : 'PDF, PNG, JPG up to 25MB'}
+                          {uploadFile ? `${(uploadFile.size / 1024).toFixed(1)} KB` : 'PDF or images up to 25MB'}
                         </p>
                       </div>
                     </div>
@@ -439,10 +439,10 @@ export const ApplicationDetail: React.FC = () => {
 
               {uploading && (
                 <div className="space-y-1">
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                  <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                   </div>
-                  <p className="text-[11px] text-blue-600 font-medium">Extracting text, computing SHA-256 digest, and parsing metadata...</p>
+                  <p className="text-[11px] text-blue-600 font-medium">Scanning and indexing document...</p>
                 </div>
               )}
 
@@ -745,9 +745,17 @@ export const ApplicationDetail: React.FC = () => {
                 <div key={f.id} className="p-5 space-y-3 hover:bg-slate-50/60 transition">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center space-x-2">
-                      <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">
-                        {f.rule_code} (v{f.rule_version})
+                      <span className="text-xs font-bold text-slate-900">
+                        {f.rule_code === 'EOA-DOC-001' ? 'Previous Year Approval Order' :
+                         f.rule_code === 'EOA-NOC-002' ? 'Building & Fire Safety Clearance' :
+                         f.rule_code === 'NBA-VALID-003' ? 'NBA Accreditation Validity' :
+                         f.rule_code === 'ID-MATCH-004' ? 'College Code & Identity Match' :
+                         f.rule_code === 'EXT-VERIFY-001' ? 'External Board Registry Verification' :
+                         f.rule_code === 'DUP-HASH-005' ? 'Duplicate Document Check' :
+                         f.rule_code === 'INTAKE-CONSIST-006' ? 'Approved Seat Intake Consistency' :
+                         f.rule_code.replace(/-/g, ' ')}
                       </span>
+                      <span className="text-[10px] font-mono text-slate-400">({f.rule_code})</span>
                       <span
                         className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                           f.severity === 'critical'
@@ -818,9 +826,9 @@ export const ApplicationDetail: React.FC = () => {
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-800">External Authority Sandbox Verification</h2>
+              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">External Registry Verification</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Synthetic verification adapters querying NBA registries, State DTE databases, and AICTE registries.
+                Automated status checks against official NBA accreditation and State Directorate registries.
               </p>
             </div>
           </div>
@@ -828,7 +836,7 @@ export const ApplicationDetail: React.FC = () => {
           <div className="divide-y divide-slate-100">
             {verifications.length > 0 ? (
               verifications.map((v) => (
-                <div key={v.id} className="p-5 space-y-2 hover:bg-slate-50">
+                <div key={v.id} className="p-4 sm:p-5 space-y-2 hover:bg-slate-50 transition">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <span className="font-bold text-xs text-slate-900">{v.source_name}</span>
@@ -849,12 +857,12 @@ export const ApplicationDetail: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">{v.response_summary}</p>
-                  <p className="text-[11px] text-slate-400 font-mono">Attempted: {v.checked_at} • Connector: {v.source_type}</p>
+                  <p className="text-[11px] text-slate-400 font-mono">Checked on: {v.checked_at}</p>
                 </div>
               ))
             ) : (
               <div className="py-12 text-center text-xs text-slate-400">
-                No external verifications recorded yet. Run validation to trigger automated authority verification.
+                No external verifications run yet. Click 'Run Verification Checks' at the top to check registries.
               </div>
             )}
           </div>
@@ -863,8 +871,10 @@ export const ApplicationDetail: React.FC = () => {
 
       {/* Tab 5: Overview & Application Data */}
       {activeTab === 'overview' && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-6">
-          <h2 className="text-base font-bold text-slate-900 border-b pb-2">Institutional Submission Form Data</h2>
+        <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-xs space-y-5">
+          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+            Application Form Summary
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="p-3 bg-slate-50 rounded-lg space-y-1">
               <span className="text-slate-500 uppercase tracking-wider font-semibold">Institution Name</span>
@@ -900,28 +910,28 @@ export const ApplicationDetail: React.FC = () => {
           {(isOfficer || isAdmin) && (
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Officer Regulatory Actions</h3>
-                <p className="text-xs text-slate-500">Record statutory observations or formal rectification notices.</p>
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Officer Decision & Actions</h3>
+                <p className="text-xs text-slate-500">Add officer observations, request updates from college, or approve.</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setRectModalOpen(true)}
-                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
                 >
-                  Issue Rectification Request
+                  Request Updates from College
                 </button>
                 <button
                   onClick={() => handleOpenReviewModal('', 'escalate')}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
                 >
                   Escalate for Inspection
                 </button>
                 <button
                   onClick={() => handleOpenReviewModal('', 'complete_review')}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
                 >
-                  Conclude Case Review
+                  Approve / Complete Review
                 </button>
               </div>
             </div>
@@ -930,7 +940,7 @@ export const ApplicationDetail: React.FC = () => {
           {/* Historical Review Actions List */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 font-semibold text-xs text-slate-800">
-              Formal Officer Review Trail ({reviews.length})
+              Officer Review History ({reviews.length})
             </div>
             <div className="divide-y divide-slate-100">
               {reviews.length > 0 ? (
@@ -945,8 +955,8 @@ export const ApplicationDetail: React.FC = () => {
                       </div>
                       <span className="text-slate-400 text-[11px] font-mono">{r.created_at}</span>
                     </div>
-                    <p className="text-slate-700 font-medium"><b>Mandatory Reason:</b> {r.reason}</p>
-                    {r.notes && <p className="text-slate-500"><b>Observations:</b> {r.notes}</p>}
+                    <p className="text-slate-700 font-medium"><b>Reason:</b> {r.reason}</p>
+                    {r.notes && <p className="text-slate-500"><b>Notes:</b> {r.notes}</p>}
                   </div>
                 ))
               ) : (
@@ -964,12 +974,12 @@ export const ApplicationDetail: React.FC = () => {
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Immutable Application Audit Trail
+              Application Activity Log
             </span>
             <button
               onClick={loadAuditTrail}
-              className="p-1 text-slate-400 hover:text-slate-600"
-              title="Refresh Audit"
+              className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+              title="Refresh Log"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>

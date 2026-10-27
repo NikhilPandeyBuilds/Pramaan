@@ -1,13 +1,14 @@
 const API_BASE = '/api';
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem('niyamai_token');
+  return localStorage.getItem('pramaan_token') || localStorage.getItem('niyamai_token');
 }
 
 export function setStoredToken(token: string | null) {
   if (token) {
-    localStorage.setItem('niyamai_token', token);
+    localStorage.setItem('pramaan_token', token);
   } else {
+    localStorage.removeItem('pramaan_token');
     localStorage.removeItem('niyamai_token');
   }
 }
@@ -64,6 +65,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  register: (data: {
+    full_name: string;
+    email: string;
+    password: string;
+    role?: string;
+    institution_name?: string;
+    institution_code?: string;
+    state?: string;
+  }) =>
+    request<{ access_token: string; token_type: string; user: any }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getInstitutions: () =>
+    request<Array<{ id: string; name: string; code: string; state: string }>>('/auth/institutions'),
   getMe: () => request<any>('/auth/me'),
   logout: () => request<any>('/auth/logout', { method: 'POST' }),
 

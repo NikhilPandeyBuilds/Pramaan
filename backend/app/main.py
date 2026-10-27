@@ -18,8 +18,8 @@ if settings.SEED_DEMO_DATA:
         seed_database(db)
 
 app = FastAPI(
-    title="NiyamAI — AICTE Regulatory Intelligence Platform",
-    description="Intelligent Application Validation, Document Authentication & Compliance Decision-Support System (SIH 26261)",
+    title="Pramaan — AICTE Approval & Compliance Platform",
+    description="Intelligent Application Validation, Document Authentication & Compliance Decision-Support System",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -39,6 +39,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Enterprise Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' http://localhost:5173 http://127.0.0.1:8000; "
+        "frame-ancestors 'none';"
+    )
+    return response
 
 # Mount Routers under API_PREFIX
 app.include_router(auth.router, prefix=settings.API_PREFIX)

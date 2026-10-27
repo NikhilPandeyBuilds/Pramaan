@@ -99,3 +99,25 @@ def test_report_generation(db):
 
     pdf_path = ReportService.generate_validation_report_pdf(db, app.id)
     assert pdf_path.endswith(".pdf")
+
+def test_user_registration(db):
+    from app.api.routes.auth import register
+    from app.schemas import UserRegister
+    import uuid
+
+    rand_email = f"test_{uuid.uuid4().hex[:6]}@college.edu"
+    reg_data = UserRegister(
+        full_name="Prof. Sharma",
+        email=rand_email,
+        password="CollegePass123!",
+        role="INSTITUTION_USER",
+        institution_name="National Institute of Technology Demo",
+        institution_code=f"1-{uuid.uuid4().hex[:6]}",
+        state="Maharashtra"
+    )
+    res = register(credentials=reg_data, db=db)
+    assert res.access_token is not None
+    assert res.user.email == rand_email
+    assert res.user.full_name == "Prof. Sharma"
+    assert res.user.institution_name == "National Institute of Technology Demo"
+

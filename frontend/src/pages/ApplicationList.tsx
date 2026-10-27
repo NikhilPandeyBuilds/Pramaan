@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Application } from '../types';
-import { Search, Filter, PlusCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, Filter, PlusCircle, ExternalLink, RefreshCw, X, FileText, CheckCircle2 } from 'lucide-react';
 
 export const ApplicationList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,7 +20,7 @@ export const ApplicationList: React.FC = () => {
         category: categoryFilter || undefined,
         status: statusFilter || undefined,
       });
-      setApplications(data);
+      setApplications(data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -37,40 +37,74 @@ export const ApplicationList: React.FC = () => {
     fetchApplications();
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setStatusFilter('');
+    setSearchParams({});
+    api.getApplications().then((d) => setApplications(d || []));
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return { label: 'Approved', badge: 'bg-emerald-50 text-emerald-800 border-emerald-300' };
+      case 'ready_for_officer_review':
+        return { label: 'Ready for Review', badge: 'bg-blue-50 text-blue-800 border-blue-300' };
+      case 'rectification_required':
+        return { label: 'Updates Needed', badge: 'bg-amber-50 text-amber-800 border-amber-300' };
+      case 'submitted':
+        return { label: 'Submitted', badge: 'bg-indigo-50 text-indigo-800 border-indigo-300' };
+      case 'draft':
+        return { label: 'Draft Mode', badge: 'bg-slate-100 text-slate-700 border-slate-300' };
+      default:
+        return { label: status.replace(/_/g, ' '), badge: 'bg-slate-100 text-slate-700 border-slate-300' };
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Institutional Applications</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Browse, filter, and inspect Extension of Approval (EoA) and institutional compliance dossiers.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Central repository of technical institution approval requests, compliance dossiers, and verification decisions.
           </p>
         </div>
         <Link
           to="/applications/new"
-          className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
+          className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white rounded-lg text-xs font-bold shadow-sm transition cursor-pointer"
         >
-          <PlusCircle className="w-4 h-4" />
+          <PlusCircle className="w-4 h-4 text-amber-300" />
           <span>New Application</span>
         </Link>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+      {/* Filter and Search Bar */}
+      <div className="executive-card p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search App #, Institution, Code..."
-            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search by ID, college name, code, state..."
+            className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white font-medium"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => { setSearchTerm(''); fetchApplications(); }}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </form>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center space-x-2 text-xs text-slate-500 font-semibold uppercase">
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          <div className="flex items-center space-x-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
             <Filter className="w-3.5 h-3.5" />
             <span>Filter:</span>
           </div>
@@ -78,32 +112,40 @@ export const ApplicationList: React.FC = () => {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-700"
           >
             <option value="">All Categories</option>
             <option value="EOA">Extension of Approval (EoA)</option>
             <option value="NEW_INSTITUTION">New Institution</option>
             <option value="INCREASE_INTAKE">Increase in Intake</option>
-            <option value="NEW_PROGRAMME">New Programme/Course</option>
+            <option value="NEW_PROGRAMME">New Programme</option>
           </select>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-700"
           >
             <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
+            <option value="draft">Draft Mode</option>
             <option value="submitted">Submitted</option>
-            <option value="ready_for_officer_review">Ready for Officer Review</option>
-            <option value="awaiting_review">Awaiting Review</option>
-            <option value="rectification_required">Rectification Required</option>
-            <option value="completed">Completed / Passed</option>
+            <option value="ready_for_officer_review">Ready for Review</option>
+            <option value="rectification_required">Updates Needed</option>
+            <option value="completed">Approved</option>
           </select>
+
+          {(categoryFilter || statusFilter || searchTerm) && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-blue-700 hover:underline px-1 font-bold cursor-pointer"
+            >
+              Reset
+            </button>
+          )}
 
           <button
             onClick={fetchApplications}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
+            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
             title="Refresh List"
           >
             <RefreshCw className="w-4 h-4" />
@@ -112,69 +154,66 @@ export const ApplicationList: React.FC = () => {
       </div>
 
       {/* Applications Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="executive-card overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center text-sm text-slate-500">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-            Loading applications...
+          <div className="py-20 text-center text-xs text-slate-500">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-800 border-t-transparent mx-auto mb-2"></div>
+            Loading application records...
           </div>
         ) : applications.length === 0 ? (
-          <div className="py-16 text-center text-sm text-slate-400">
-            No matching institutional applications found.
+          <div className="py-20 text-center text-xs text-slate-400">
+            No applications match your search criteria.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+              <thead className="bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3.5">Application Number</th>
-                  <th className="px-6 py-3.5">Institution</th>
-                  <th className="px-6 py-3.5">Category</th>
-                  <th className="px-6 py-3.5">Academic Year</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  <th className="px-5 py-3.5">Application #</th>
+                  <th className="px-5 py-3.5">Institution</th>
+                  <th className="px-5 py-3.5">Approval Category</th>
+                  <th className="px-5 py-3.5">Academic Year</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {applications.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50/80 transition">
-                    <td className="px-6 py-4 font-mono text-xs font-bold text-blue-600">
-                      <Link to={`/applications/${app.id}`} className="hover:underline">
-                        {app.application_number}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{app.institution_name}</div>
-                      <div className="text-xs text-slate-500">AICTE ID: {app.institution_code}</div>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">{app.category}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600 font-mono">{app.academic_year}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
-                          app.status === 'completed'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : app.status === 'ready_for_officer_review'
-                            ? 'bg-amber-100 text-amber-800'
-                            : app.status === 'rectification_required'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-slate-100 text-slate-800'
-                        }`}
-                      >
-                        {app.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link
-                        to={`/applications/${app.id}`}
-                        className="inline-flex items-center space-x-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
-                      >
-                        <span>Open Dossier</span>
-                        <ExternalLink className="w-3 h-3 ml-1" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {applications.map((app) => {
+                  const s = getStatusBadge(app.status);
+                  return (
+                    <tr key={app.id} className="hover:bg-slate-50/80 transition">
+                      <td className="px-5 py-3.5 font-mono font-bold text-blue-800 text-[11px]">
+                        <Link to={`/applications/${app.id}`} className="hover:underline">
+                          {app.application_number}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Link to={`/applications/${app.id}`} className="font-bold text-slate-900 hover:text-blue-800">
+                          {app.institution_name}
+                        </Link>
+                        <div className="text-[11px] text-slate-500 font-medium">AICTE Code: {app.institution_code}</div>
+                      </td>
+                      <td className="px-5 py-3.5 font-semibold text-slate-700">
+                        {app.category === 'EOA' ? 'Extension of Approval' : app.category.replace(/_/g, ' ')}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 font-medium font-mono">{app.academic_year}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${s.badge}`}>
+                          {s.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Link
+                          to={`/applications/${app.id}`}
+                          className="inline-flex items-center space-x-1 text-xs font-bold text-blue-800 hover:text-blue-900 bg-blue-50/80 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
+                        >
+                          <span>Open Dossier</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
